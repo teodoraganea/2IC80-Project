@@ -1,6 +1,7 @@
 from scapy.all import *
 from tkinter import *
 from arpPoisoning import arpPoisoning
+from dnsSpoofing import dnsSpoofing
 
 root = Tk()
 root.geometry('600x400')
