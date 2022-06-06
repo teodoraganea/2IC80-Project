@@ -1,5 +1,5 @@
 from scapy.all import *
-from tkinter import *
+from Tkinter import *
 from arpPoisoning import arpPoisoning
 from dnsSpoofing import dnsSpoofing
 
