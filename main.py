@@ -20,3 +20,28 @@ def initiate():
         process.get_IP()
     else:
         print("Wrong initiation")
+
+
+def initIterface(modeType):
+    global interface
+    interface = modeType
+    destrWidget()
+    initiate()
+
+
+def chooseInterface():
+    Label(root, text='Choose the interface: enp0s3->arp enp0s8->DNS').pack()
+    OPTIONS = get_if_list()  # etc
+    selectMode = Listbox(root, selectmode="single", width=100)
+    for each_item in range(len(OPTIONS)):
+        selectMode.insert(END, OPTIONS[each_item])
+    selectMode.pack()
+
+    def selected():
+        itemsInListebox = selectMode.get(0, END)
+        indexesfSelectedItems = selectMode.curselection()  # tuple with indexes of selected items
+        list = [itemsInListebox[item] for item in indexesfSelectedItems]
+        selectedMode = list[0]
+        initIterface(selectedMode)
+
+    Button(root, text="Execute", command=selected).pack()
