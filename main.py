@@ -45,3 +45,25 @@ def chooseInterface():
         initIterface(selectedMode)
 
     Button(root, text="Execute", command=selected).pack()
+
+def dnsButton():
+    destrWidget()
+    global mode
+    mode = "dns"
+    chooseInterface()
+
+def arpButton():
+    destrWidget()
+    global mode
+    mode = "arp"
+    chooseInterface()
+
+def sslButton():
+    destrWidget()
+    global mode
+    mode = "ssl"
+    chooseInterface()
+
+def destrWidget():
+    for widget in root.winfo_children():
+        widget.destroy()
