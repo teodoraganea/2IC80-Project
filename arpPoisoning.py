@@ -5,3 +5,7 @@ import sys
 import os
 
 class arpPoisoning():
+
+    def __init__(self, interface, root):
+        self.interface = interface
+        self.root = root
