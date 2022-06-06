@@ -10,10 +10,10 @@ interface = ""
 
 def initiate():
     if mode == "arp":
-        process = arp(interface, root)
+        process = arpPoisoning(interface, root)
         process.get_IP()
     elif mode == "dns":
-        process = dnsPoisoning(interface, root)
+        process = dnsSpoofing(interface, root)
         process.get_IP()
     elif mode == "ssl":
         process = SSLstrip(interface, root)
