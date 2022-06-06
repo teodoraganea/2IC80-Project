@@ -1,5 +1,6 @@
 from scapy.all import *
 from tkinter import *
+from arpPoisoning import arpPoisoning
 
 root = Tk()
 root.geometry('600x400')
