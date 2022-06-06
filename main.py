@@ -67,3 +67,10 @@ def sslButton():
 def destrWidget():
     for widget in root.winfo_children():
         widget.destroy()
+
+entry = Label(root, text='ARPpoisoning_DNSspoofing_SSLstrip').place(relx=0.5, rely=0.2, anchor='center')
+arpButton = Button(root, text="ARP poisoning", command=arpButton).place(relx=0.3, rely=0.5, anchor='center')
+dnsButton = Button(root, text="DNS attack", command=dnsButton).place(relx=0.5, rely=0.5, anchor='center')
+sslStripButton = Button(root, text="SSL strip", command=sslButton).place(relx=0.7, rely=0.5, anchor='center')
+
+root.mainloop()
