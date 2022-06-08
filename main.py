@@ -1,6 +1,6 @@
 from scapy.all import *
 from arpPoisoning import arpPoisoning
-from dnsfinal import dnsfinal
+#from dnsfinal import dnsfinal
 from Tkinter import*
 import threading
 
@@ -17,10 +17,10 @@ def start():
         process = arpPoisoning(interface, root)
         process.getInput()
     elif mode == "dns":
-        process = dnsfinal(interface, root)
+        process = arpPoisoning(interface, root)#dnsfinal(interface, root)
         process.getInput()
     elif mode == "ssl":
-        process = dnsfinal(interface, root)
+        process = arpPoisoning(interface, root) #dnsfinal(interface, root)
         process.getInput()
     else:
         print("Error")
@@ -36,7 +36,7 @@ def beforeInit(modeType):
 def interfaceSelection():
     Label(root, text='Select the interface').pack()
     options = get_if_list() 
-    selectMode = Listbox(root, selectmode="single", width=100)
+    selectMode = Listbox(root, selectmode="single", width=50)
     for each_item in range(len(options)):
         selectMode.insert(END, options[each_item])
     selectMode.pack()

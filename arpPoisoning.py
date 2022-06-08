@@ -118,7 +118,10 @@ class arpPoisoning():
 
     def packetForwarding(self, packet):
         if packet.haslayer(Ether) and packet.haslayer(IP):#check IP&Arp Layer
-            self.initSndRcv()
+            sender = None
+            senderfound = False
+            receiver = None
+            receiverfound = False
             for vict in self.target:
                 if (vict["mac"] == packet[Ether].src):
                     sender, senderfound = self.SndFound(vict)
@@ -134,12 +137,6 @@ class arpPoisoning():
                                 receiver, receiverfound = self.rcvFound(vict)
             if (senderfound and receiverfound):
                 self.modifyAndSend(packet, sender, receiver)
-
-    def initSndRcv(self):
-        sender = None
-        senderfound = False
-        receiver = None
-        receiverfound = False
 
     def rcvFound(self, subj):
         receiver = subj
