@@ -69,4 +69,23 @@ class arpPoisoning():
 
         Button(self.root, text="Execute", command=lambda:selectIpArp(self)).pack()
 
+    def getInput(self):
+        ipLabel = Label(self.root,
+                        text='Enter the range of IPs (i.e.: 192.168.56.0/24)').pack()
+        ipValue = Entry(self.root)
+        ipValue.pack()
+
+        def get_execute(self):
+            self.rangeIPs = ipValue.get()
+            self.usedIPs, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=self.rangeIPs), timeout=3,iface=self.interface)
+            for widget in self.root.winfo_children():
+                widget.destroy()
+            self.select_arp_IP()
+
+        def restart_program(self):
+            python =sys.executable
+            os.execl(python, python, * sys.argv)
+        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
+        Button(self.root, text="Execute", command=lambda:get_execute(self)).pack()
+
     
