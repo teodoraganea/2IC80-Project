@@ -1,78 +1,83 @@
 from scapy.all import *
-from Tkinter import *
 from arpPoisoning import arpPoisoning
-from dnsSpoofing import dnsSpoofing
+from dnsfinal import dnsfinal
+from Tkinter import*
+import threading
 
 root = Tk()
-root.geometry('600x400')
+root.geometry('600x500')
 root.title('ARP_DNS_SSL')
 
 mode = ""
 interface = ""
 
-def initiate():
+def start():
+    proc_thread = None
     if mode == "arp":
         process = arpPoisoning(interface, root)
-        process.get_IP()
+        process.getInput()
     elif mode == "dns":
-        process = dnsSpoofing(interface, root)
-        process.get_IP()
+        process = dnsfinal(interface, root)
+        process.getInput()
     elif mode == "ssl":
-        process = SSLstrip(interface, root)
-        process.get_IP()
+        process = dnsfinal(interface, root)
+        process.getInput()
     else:
-        print("Wrong initiation")
+        print("Error")
 
 
-def initIterface(modeType):
+def beforeInit(modeType):
     global interface
     interface = modeType
-    destrWidget()
-    initiate()
+    destroy()
+    start()
 
 
-def chooseInterface():
-    Label(root, text='Choose the interface: enp0s3->arp enp0s8->DNS').pack()
-    OPTIONS = get_if_list()  # etc
+def interfaceSelection():
+    Label(root, text='Select the interface').pack()
+    options = get_if_list() 
     selectMode = Listbox(root, selectmode="single", width=100)
-    for each_item in range(len(OPTIONS)):
-        selectMode.insert(END, OPTIONS[each_item])
+    for each_item in range(len(options)):
+        selectMode.insert(END, options[each_item])
     selectMode.pack()
 
-    def selected():
-        itemsInListebox = selectMode.get(0, END)
-        indexesfSelectedItems = selectMode.curselection()  # tuple with indexes of selected items
-        list = [itemsInListebox[item] for item in indexesfSelectedItems]
+    def select():
+        itemsInListbox = selectMode.get(0, END)  
+        indexesOfSelectedItems = selectMode.curselection()
+        list = [itemsInListbox[item] for item in indexesOfSelectedItems]
         selectedMode = list[0]
-        initIterface(selectedMode)
+        beforeInit(selectedMode)
 
-    Button(root, text="Execute", command=selected).pack()
+    Button(root, text="Execute", command=select).pack()
+
+
 
 def dnsButton():
-    destrWidget()
+    destroy()
     global mode
     mode = "dns"
-    chooseInterface()
+    interfaceSelection()
+
 
 def arpButton():
-    destrWidget()
+    destroy()
     global mode
     mode = "arp"
-    chooseInterface()
+    interfaceSelection()
 
 def sslButton():
-    destrWidget()
+    destroy()
     global mode
     mode = "ssl"
-    chooseInterface()
+    interfaceSelection()
 
-def destrWidget():
+def destroy():
     for widget in root.winfo_children():
         widget.destroy()
 
-entry = Label(root, text='ARPpoisoning_DNSspoofing_SSLstrip').place(relx=0.5, rely=0.2, anchor='center')
+entry = Label(root, text='Select the attack').place(relx=0.5, rely=0.2, anchor='center')
+dnsButton = Button(root, text="DNS spoofing", command=dnsButton).place(relx=0.5, rely=0.5, anchor='center')
 arpButton = Button(root, text="ARP poisoning", command=arpButton).place(relx=0.3, rely=0.5, anchor='center')
-dnsButton = Button(root, text="DNS attack", command=dnsButton).place(relx=0.5, rely=0.5, anchor='center')
-sslStripButton = Button(root, text="SSL strip", command=sslButton).place(relx=0.7, rely=0.5, anchor='center')
+arpButton = Button(root, text="SSL strip", command=sslButton).place(relx=0.7, rely=0.5, anchor='center')
 
 root.mainloop()
