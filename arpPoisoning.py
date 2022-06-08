@@ -43,4 +43,30 @@ class arpPoisoning():
 
         Button(self.root, text="Execute", command=lambda:get_target(self)).pack()
 
+    def select_arp_IP(self):
+        self.target = []
+        Label(self.root, text='Select the victim/victims').pack()
+        OPTIONS = []
+        for pktSnd, pktRcv in self.usedIPs:
+            OPTIONS.append(pktRcv[ARP].psrc)
+
+        select = Listbox(self.root, selectmode="multiple", width=50)
+        for each_item in range(len(OPTIONS)):
+            select.insert(END, OPTIONS[each_item])
+        select.pack()
+
+        def selectIpArp(self):
+            for i in select.curselection():
+                InIpArp = int(i)
+                self.target.append(
+                    {"ip": self.usedIPs[InIpArp][1][ARP].psrc, "mac": self.usedIPs[InIpArp][1][ARP].hwsrc})
+            self.selMalWebSrv()
+
+        def restart_program(self):
+            python =sys.executable
+            os.execl(python, python, * sys.argv)
+        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
+
+        Button(self.root, text="Execute", command=lambda:selectIpArp(self)).pack()
+
     
