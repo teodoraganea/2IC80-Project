@@ -1,3 +1,4 @@
+from dnsfinal import dnsfinal
 from scapy.all import *
 from arpPoisoning import arpPoisoning
 #from dnsfinal import dnsfinal
@@ -17,7 +18,7 @@ def start():
         process = arpPoisoning(interface, root)
         process.getInput()
     elif mode == "dns":
-        process = arpPoisoning(interface, root)#dnsfinal(interface, root)
+        process = dnsfinal(interface, root)#dnsfinal(interface, root)
         process.getInput()
     elif mode == "ssl":
         process = arpPoisoning(interface, root) #dnsfinal(interface, root)
