@@ -5,7 +5,7 @@ from Tkinter import*
 import threading
 
 root = Tk()
-root.geometry('600x500')
+root.geometry('600x400')
 root.title('ARP_DNS_SSL')
 
 mode = ""
