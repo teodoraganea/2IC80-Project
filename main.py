@@ -20,7 +20,7 @@ def start():
         process = dnsfinal(interface, root)
         process.getInput()
     elif mode == "ssl":
-        process = arpPoisoning(interface, root) #dnsfinal(interface, root)
+        process = sslstrip(interface, root) 
         process.getInput()
     else:
         print("Error")
