@@ -26,7 +26,7 @@ class sslstrip():
 		else:
 			return IP in pkt and pkt[IP].dst != self.ATTACKER_IP and pkt[Ether].dst == self.ATTACKER_MAC
 
-		def getsslVictims(self):
+	def getsslVictims(self):
 		# self.sslVictims = [{ "IP": "10.0.2.4", "MAC": self.get_mac("10.0.2.4")}]
 		# return
 
