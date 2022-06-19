@@ -18,7 +18,7 @@ class arpPoisoning():
         OPTIONS = []
         for pktSnd, pktRcv in self.usedIPs:
             OPTIONS.append(pktRcv[ARP].psrc)
-        Label(self.root, text='Select the malicious WebServer').place(relx=0.5, rely=0.2, anchor='center')
+        Label(self.root, text='Select the WebServer').pack()
         selectTargetIP = Listbox(self.root, selectmode="single", width=50)
         for each_item in range(len(OPTIONS)):
             selectTargetIP.insert(END, OPTIONS[each_item])
@@ -69,7 +69,7 @@ class arpPoisoning():
 
     def getInput(self):
         ipLabel = Label(self.root,
-                        text='Enter the range of IPs (i.e.: 192.168.56.0/24)').place(relx=0.5, rely=0.2, anchor='center')
+                        text='Enter the range of IPs (i.e.: 10.0.2.0/24)').pack()
         ipValue = Entry(self.root)
         ipValue.pack()
 
@@ -150,6 +150,7 @@ class arpPoisoning():
         sendp(packet, iface=self.interface, verbose=False)
         self.show.insert(END, "Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
         self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
+        self.show.insert(END,'\n')                                                                    
         self.show.see(END)
         self.show.update_idletasks()
 

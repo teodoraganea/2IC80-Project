@@ -1,5 +1,5 @@
-from dnsfinal import dnsfinal
 from scapy.all import *
+from dnsSpoofing import dnsSpoofing
 from arpPoisoning import arpPoisoning
 from Tkinter import*
 import threading
@@ -18,10 +18,10 @@ def start():
         process = arpPoisoning(interface, root)
         process.getInput()
     elif mode == "dns":
-        process = dnsfinal(interface, root)
+        process = dnsSpoofing(interface, root)
         process.getInput()
     elif mode == "ssl":
-        process = sslStrip(interface, root) #dnsfinal(interface, root)
+        process = sslStrip(interface, root) #dnsSpoofing(interface, root)
         process.getInput()
     else:
         print("Error")
@@ -36,8 +36,9 @@ def beforeInit(modeType):
 
 def interfaceSelection():
     Label(root, text='Select the interface').pack()
+    Label(root, text='If a NAT network is present, choose enp0s8').pack()
     options = get_if_list() 
-    selectMode = Listbox(root, selectmode="single", width=50)
+    selectMode = Listbox(root, selectmode="single", width=30)
     for each_item in range(len(options)):
         selectMode.insert(END, options[each_item])
     selectMode.pack()

