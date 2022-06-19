@@ -1,10 +1,10 @@
 # 2IC80 - Default Project, Group 48
 
-This represents a fully-fledged, automated tool which performs three MITM attacks: ARP Poisoning, DNS Spoofing and SSL Stripping written using Python.
+This represents a fully-fledged, automated Python tool which performs three MITM attacks: ARP Poisoning, DNS Spoofing and SSL Stripping.
 
 ## Mechanisms
-The project runs on Oracle VM VirtualBox environment. For this, all three machines need to be running. M3 is the attacker, and M1 and M2 are the two
-endpoints instantiating communication. 
+The project runs on Oracle VM VirtualBox environment. For this, all three machines need to be running. M3 is the attacker, while M1 and M2 are the two
+endpoints instantiating communication. M1 is the victim and operates on WindowsXP, whereas M2 is the server.
 
 ## Running the application
  After opening all three virtual machines, the user should perform the following on M3:
