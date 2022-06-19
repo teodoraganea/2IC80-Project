@@ -2,11 +2,11 @@
 
 This represents a fully-fledged, automated tool which performs three MITM attacks: ARP Poisoning, DNS Spoofing and SSL Stripping written using Python.
 
-##Mechanisms
+## Mechanisms
 The project runs on Oracle VM VirtualBox environment. For this, all three machines need to be running. M3 is the attacker, and M1 and M2 are the two
 endpoints instantiating communication. 
 
-##Running the application
+## Running the application
  After opening all three virtual machines, the user should perform the following on M3:
    1. Install Scapy Python library and Tkinter Python library
    2. In its terminal, write `sudo su` command
