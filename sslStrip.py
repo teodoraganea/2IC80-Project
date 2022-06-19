@@ -126,7 +126,7 @@ class sslStrip():
 
     def packetForwarding(self, packet):
         if packet.haslayer(Ether) and packet.haslayer(IP):#check IP&Arp Layer
-            self.show.insert(END, "from ip: {} mac{}, to ip: {} ".format( packet[IP].src, packet[Ether].src, packet[IP].dst) + '\n')
+            self.show.insert(END, "from ip: {} mac{}, to ip: {} ".format( packet[IP].src, packet[Ether].dst, packet[IP].dst) + '\n')
             self.show.insert(END, "ip gateway{}".format( self.maliciousWebServer[0]["ip"],) + '\n')
             self.show.insert(END,'\n')                                                                    
             self.show.see(END)
